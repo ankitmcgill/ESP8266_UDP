@@ -35,16 +35,18 @@ void ESP8266_UDP_create_listener(uint16_t udp_port, espconn_recv_callback callba
 	error = espconn_regist_recvcb(&(h->esp_connection_variable), callback);
 }
 
-void ESP8266_UDP_send_data_ip(uint8_t ip1, uint8_t ip2, uint8_t ip3, uint8_t ip4, uint16_t port, uint8_t* data, uint16_t data_len, struct ESP8266_UDP_HANDLE* h)
+void ESP8266_UDP_send_data_ip(uint8_t ip1, uint8_t ip2, uint8_t ip3, uint8_t ip4, uint16_t port_remote, uint16_t port_local, uint8_t* data, uint16_t data_len, struct ESP8266_UDP_HANDLE* h)
 {
-	//SEND THE SPECIFIED DATA OF THE SPECIFIED LENGTH TO THE REMOTE IP: PORT
+	//SEND THE SPECIFIED DATA OF THE SPECIFIED LENGTH TO REMOTE IP: PORT
+	//THROUGH THE LOCAL PORT PASSED AS AN ARGUMENT
 	//SPECIFIED IN THE UDP HANDLE STRUCTURE
 
 	h->esp_connection_variable.type = ESPCONN_UDP;
 	h->esp_connection_variable.state = ESPCONN_NONE;
 	h->esp_connection_variable.proto.udp = &(h->esp_udp_variable);
 	IP4_ADDR((ip_addr_t*)h->esp_connection_variable.proto.udp->remote_ip, ip1, ip2, ip3, ip4);
-	h->esp_connection_variable.proto.udp->remote_port = port;
+	h->esp_connection_variable.proto.udp->local_port = port_local;
+	h->esp_connection_variable.proto.udp->remote_port = port_remote;
 
 	espconn_create(&(h->esp_connection_variable));
 	espconn_send(&(h->esp_connection_variable), data, data_len);
