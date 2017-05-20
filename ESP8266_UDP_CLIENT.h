@@ -41,7 +41,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
 													const char* host_ip,
 													uint16_t host_port);
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDnsServer(char num_dns, ip_addr_t* dns);
-void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*udp_con_cb)(void*, char*, unsigned short));
+void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_ready_cb)(void*, char*, unsigned short));
 
 //GET PARAMETERS FUNCTIONS
 const char* ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetSourceHost(void);
@@ -56,7 +56,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
 //INTERNAL CALLBACK FUNCTIONS
 void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_timer_cb(void* arg);
 void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_addr_t* ipAddr, void* arg);
-void ICACHE_FLASH_ATTR _esp8266_udp_cleint_usd_rcv_cb()void* arg, char* pusrdata, unsigned short length);
+void ICACHE_FLASH_ATTR _esp8266_udp_client_usd_rcv_cb()void* arg, char* pusrdata, unsigned short length);
 
 //END FUNCTION PROTOTYPES/////////////////////////////////
 #endif
