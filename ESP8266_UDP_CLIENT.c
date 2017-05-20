@@ -56,7 +56,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
     
     _esp8266_udp_client_dns_retry_count = 0;
 
-	_esp8266_tcp_get_state = ESP8266_TCP_GET_STATE_OK;
+	_esp8266_udp_client_state = ESP8266_UDP_CLIENT_STATE_OK;
 	return;
 }
 
