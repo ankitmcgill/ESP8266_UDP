@@ -171,7 +171,22 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
     espconn_regist_recvcb(&_esp8266_udp_client_espconn, _esp8266_udp_client_udp_recv_cb);
     
     //SEND DATA
-    espconn_send(&_esp8266_udp_client_espconn, data, data_len);
+    int8_t error = espconn_send(&_esp8266_udp_client_espconn, data, data_len);
+    
+    #ifdef ESP8266_UDP_CLIENT_DEBUG_ON
+    if(error == 0)
+    {
+	    //UDP SENDING OK
+	    os_printf("ESP8266 : UDP : Data Sent : Length = %d, Local Port = %d\n", data_len, _esp8266_udp_client_local_port);
+    }
+    else
+    {
+        //UDP SENDING ERROR
+        os_printf("ESP8266 : UDP : Data Sent Error: Code = %d\n", error);
+    }
+    #endif
+	    
+	    
 }
 
 void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_timer_cb(void* arg)
