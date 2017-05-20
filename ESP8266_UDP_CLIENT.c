@@ -1,13 +1,18 @@
-/*************************************************
-* ESP8266 UDP LIBRARY
+/****************************************************************
+* ESP8266 UDP CLIENT LIBRARY
 *
-* NOVEMBER 1 2016
+* MAY 20 2017
+*
 * ANKIT BHATNAGAR
 * ANKIT.BHATNAGARINDIA@GMAIL.COM
-* ***********************************************/
+*
+* REFERENCES
+* ------------
+* 	(1) https://espressif.com/en/support/explore/sample-codes
+****************************************************************/
 
 
-#include "ESP8266_UDP.h"
+#include "ESP8266_UDP_CLIENT.h"
 
 void ESP8266_UDP_create_listener(uint16_t udp_port, espconn_recv_callback callback, struct ESP8266_UDP_HANDLE* h)
 {

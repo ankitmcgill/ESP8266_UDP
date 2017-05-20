@@ -1,2 +1,2 @@
 # ESP8266_UDP
-UDP Library For ESP866
+UDP Client Library For ESP866
