@@ -269,7 +269,7 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 	}
 }
 
-void ICACHE_FLASH_ATTR _esp8266_udp_cleint_usd_rcv_cb()void* arg, char* pusrdata, unsigned short length)
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata, unsigned short length)
 {
     //INTERNAL UDP DATA RECEIVED CB
     
