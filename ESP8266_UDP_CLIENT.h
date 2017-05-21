@@ -14,7 +14,6 @@
 #ifndef _ESP8266_UDP_CLIENT_H_
 #define _ESP8266_UDP_CLIENT_H_
 
-
 #include <ets_sys.h>
 #include <espconn.h>
 #include "user_interface.h"
@@ -23,7 +22,6 @@
 #include "osapi.h"
 #include "mem.h"
 
-#define ESP8266_UDP_CLIENT_DEBUG_ON
 #define ESP8266_UDP_CLIENT_DNS_MAX_TRIES    5
 
 //CUSTOM VARIABLE STRUCTURES/////////////////////////////
@@ -37,6 +35,7 @@ typedef enum
 
 //FUNCTION PROTOTYPES/////////////////////////////////////
 //CONFIGURATION FUNCTIONS
+void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDebug(uint8_t debug_on);
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
 													const char* host_ip,
 													uint16_t host_port);

@@ -14,6 +14,9 @@
 #include "ESP8266_UDP_CLIENT.h"
 
 //LOCAL LIBRARY VARIABLES/////////////////////////////////////
+//DEBUG RELATED
+static uint8_t _esp8266_udp_client_debug;
+
 //UDP RELATED
 static struct espconn _esp8266_udp_client_espconn;
 static struct esp_udp _esp8266_udp_client_user_udp;
@@ -41,6 +44,14 @@ static void (*_esp8266_udp_client_udp_recv_cb)(void*, char*, unsigned short);
 static void (*_esp8266_udp_client_udp_user_data_ready_cb)(char*, uint16_t);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////////
 
+
+void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDebug(uint8_t debug_on)
+{
+    //SET DEBUG PRINTF ON(1) OR OFF(0)
+    
+    _esp8266_udp_client_debug = debug_on;
+}
+
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
 													const char* host_ip,
 													uint16_t host_port)
@@ -57,6 +68,9 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
     _esp8266_udp_client_dns_retry_count = 0;
 
 	_esp8266_udp_client_state = ESP8266_UDP_CLIENT_STATE_OK;
+	
+	//SET DEBUG ON
+	_esp8266_udp_client_debug = 1;
 	return;
 }
 
@@ -173,20 +187,19 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
     //SEND DATA
     int8_t error = espconn_send(&_esp8266_udp_client_espconn, data, data_len);
     
-    #ifdef ESP8266_UDP_CLIENT_DEBUG_ON
-    if(error == 0)
+    if(_esp8266_udp_client_debug)
     {
-	    //UDP SENDING OK
-	    os_printf("ESP8266 : UDP : Data Sent : Length = %d, Local Port = %d\n", data_len, _esp8266_udp_client_local_port);
+        if(error == 0)
+        {
+	        //UDP SENDING OK
+	        os_printf("ESP8266 : UDP : Data Sent : Length = %d, Local Port = %d\n", data_len, _esp8266_udp_client_local_port);
+        }
+        else
+        {
+            //UDP SENDING ERROR
+            os_printf("ESP8266 : UDP : Data Sent Error: Code = %d\n", error);
+        }
     }
-    else
-    {
-        //UDP SENDING ERROR
-        os_printf("ESP8266 : UDP : Data Sent Error: Code = %d\n", error);
-    }
-    #endif
-	    
-	    
 }
 
 void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_timer_cb(void* arg)
@@ -204,9 +217,10 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_timer_cb(void* arg)
 		//STOP THE DNS TIMER
 		os_timer_disarm(&_esp8266_udp_client_dns_timer);
 
-		#ifdef ESP8266_UDP_CLIENT_DEBUG_ON
-		os_printf("DNS Max retry exceeded. DNS unsuccessfull\n");
-		#endif
+		if(_esp8266_udp_client_debug)
+		{
+		    os_printf("DNS Max retry exceeded. DNS unsuccessfull\n");
+		}
 
 		_esp8266_udp_client_state = ESP8266_UDP_CLIENT_STATE_ERROR;
 		//CALL USER DNS CB FUNCTION WILL NULL ARGUMENT)
@@ -217,9 +231,10 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_timer_cb(void* arg)
 		return;
 	}
 
-	#ifdef ESP8266_UDP_CLIENT_DEBUG_ON
-	os_printf("DNS resolve timer expired. Starting another timer of 1 second...\n");
-	#endif
+	if(_esp8266_udp_client_debug)
+	{
+	    os_printf("DNS resolve timer expired. Starting another timer of 1 second...\n");
+	}
 
 	struct espconn *pespconn = arg;
 	espconn_gethostbyname(pespconn, _esp8266_udp_client_host_name, &_esp8266_udp_client_resolved_host_ip, _esp8266_udp_client_dns_found_cb);
@@ -236,9 +251,10 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 	if(ipAddr == NULL)
 	{
 		//HOST NAME COULD NOT BE RESOLVED
-		#ifdef ESP8266_UDP_CLIENT_DEBUG_ON
-		os_printf("hostname : %s, could not be resolved\n", _esp8266_udp_client_host_name);
-		#endif
+		if(_esp8266_udp_client_debug)
+		{
+		    os_printf("hostname : %s, could not be resolved\n", _esp8266_udp_client_host_name);
+		}
 
 		_esp8266_udp_client_state = ESP8266_UDP_CLIENT_STATE_ERROR;
 		
@@ -252,13 +268,14 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 
 	//DNS GOT IP
 	_esp8266_udp_client_resolved_host_ip.addr = ipAddr->addr;
-	#ifdef ESP8266_UDP_CLIENT_DEBUG_ON
-	os_printf("hostname : %s, resolved. IP = %d.%d.%d.%d\n", _esp8266_udp_client_host_name,
-																*((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr),
-																*((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr + 1),
-																*((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr + 2),
-																*((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr + 3));
-	#endif
+	if(_esp8266_udp_client_debug)
+	{
+	    os_printf("hostname : %s, resolved. IP = %d.%d.%d.%d\n", _esp8266_udp_client_host_name,
+																    *((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr),
+																    *((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr + 1),
+																    *((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr + 2),
+																    *((uint8_t*)&_esp8266_udp_client_resolved_host_ip.addr + 3));
+	}
 
 	_esp8266_udp_client_state = ESP8266_UDP_CLIENT_STATE_DNS_RESOLVED;
 
@@ -273,9 +290,10 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata
 {
     //INTERNAL UDP DATA RECEIVED CB
     
-    #ifdef ESP8266_UDP_CLIENT_DEBUG_ON
-	os_printf("ESP8266 : UDP : DATA RECEIVED : LEN = %d", length);
-	#endif
+    if(_esp8266_udp_client_debug)
+    {
+	    os_printf("ESP8266 : UDP : DATA RECEIVED : LEN = %d", length);
+	}
 	
 	//CALL USER PROVIDED DATA RECEIVED CB
 	if(*_esp8266_udp_client_udp_user_data_ready_cb != NULL)
