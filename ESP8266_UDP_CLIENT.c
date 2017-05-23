@@ -304,7 +304,7 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 	}
 }
 
-void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_cb(void* arg)
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_timer_cb(void* arg)
 {
 	//INTERNAL UDP REPLY TIMER
 	//IF TIMER CALLED => NO UDP REPLY RECEIVED
@@ -333,7 +333,7 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_send_cb(void* arg)
 	}
 
 	//START UDP REPLY TIMER
-	os_timer_setfn(&_esp8266_udp_client_reply_timer, (os_timer_func_t*)_esp8266_udp_client_udp_reply_cb, NULL);
+	os_timer_setfn(&_esp8266_udp_client_reply_timer, (os_timer_func_t*)_esp8266_udp_client_udp_reply_timer_cb, NULL);
 	os_timer_arm(&_esp8266_udp_client_reply_timer, ESP8266_UDP_CLIENT_UDP_REPLY_TIMEOUT_MS, 0);
 }
 

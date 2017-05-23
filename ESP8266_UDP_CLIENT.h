@@ -57,7 +57,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
 //INTERNAL CALLBACK FUNCTIONS
 void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_timer_cb(void* arg);
 void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_addr_t* ipAddr, void* arg);
-void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_cb(void* arg);
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_timer_cb(void* arg);
 void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_send_cb(void* arg);
 void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata, uint16_t length);
 
