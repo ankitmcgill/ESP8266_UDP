@@ -30,16 +30,17 @@ static uint16_t _esp8266_udp_client_local_port;
 
 //TIMER RELATED
 static volatile os_timer_t _esp8266_udp_client_dns_timer;
+static volatile os_timer_t _esp8266_udp_client_reply_timer;
 
 //COUNTERS
 static uint16_t _esp8266_udp_client_dns_retry_count;
 
 //UDP OBJECT STATE
-static char* _esp8266_udp_client_data_buffer;
 static ESP8266_UDP_CLIENT_STATE _esp8266_udp_client_state;
 
 //CALLBACK FUNCTION VARIABLES
 static void (*_esp8266_udp_client_dns_cb_function)(ip_addr_t*);
+static void (*_esp8266_udp_client_udp_user_data_sent_cb)();
 static void (*_esp8266_udp_client_udp_user_data_ready_cb)(char*, uint16_t);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////////
 
@@ -85,13 +86,17 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDnsServer(char num_dns, ip_addr_t* 
 	return;
 }
 
-void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_ready_cb)(char*, uint16_t))
+void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_sent_cb)(),
+																	void (*user_data_ready_cb)(char*, uint16_t))
 {
     //HOOK FOR THE USER TO PROVIDE CALLBACK FUNCTIONS FOR
 	//VARIOUS INTERNAL UDP OPERATION
 	//SET THE CALLBACK FUNCTIONS FOR THE EVENTS:
 	//  (1) UDP USER DATA READY
 	
+	//UDP DATA SENT USER CB
+	_esp8266_udp_client_udp_user_data_sent_cb = user_data_sent_cb;
+
 	//UDP DATA READY USER CB
 	_esp8266_udp_client_udp_user_data_ready_cb = user_data_ready_cb;
 }
@@ -173,17 +178,30 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
 
 	_esp8266_udp_client_user_udp.local_port = espconn_port();
 	_esp8266_udp_client_user_udp.remote_port = _esp8266_udp_client_host_port;
-    _esp8266_udp_client_espconn.proto.udp = &_esp8266_udp_client_user_udp;
-    
-    //STORE THE LOCAL PORT USED FOR THIS TRANSACTION
+
+	//SET UP THE REMOTE IP
+	_esp8266_udp_client_user_udp.remote_ip[0] = ip4_addr1(&_esp8266_udp_client_resolved_host_ip.addr);
+	_esp8266_udp_client_user_udp.remote_ip[1] = ip4_addr2(&_esp8266_udp_client_resolved_host_ip.addr);
+	_esp8266_udp_client_user_udp.remote_ip[2] = ip4_addr3(&_esp8266_udp_client_resolved_host_ip.addr);
+	_esp8266_udp_client_user_udp.remote_ip[3] = ip4_addr4(&_esp8266_udp_client_resolved_host_ip.addr);
+
+	os_printf("resolved. IP = %d.%d.%d.%d\n", ip4_addr1(&_esp8266_udp_client_resolved_host_ip.addr),
+			ip4_addr2(&_esp8266_udp_client_resolved_host_ip.addr),
+			ip4_addr3(&_esp8266_udp_client_resolved_host_ip.addr),
+			ip4_addr4(&_esp8266_udp_client_resolved_host_ip.addr));
+
+	//STORE THE LOCAL PORT USED FOR THIS TRANSACTION
     _esp8266_udp_client_local_port = _esp8266_udp_client_user_udp.local_port;
     
+    _esp8266_udp_client_espconn.proto.udp = &_esp8266_udp_client_user_udp;
+
     //CREATE UDP CONNECTION
     espconn_create(&_esp8266_udp_client_espconn);
     
-    //REGISTER RECEIVE CALLBACK FUNCTION
+    //REGISTER SEND AND RECEIVE CALLBACK FUNCTION
+    espconn_regist_sentcb(&_esp8266_udp_client_espconn, _esp8266_udp_client_udp_send_cb);
     espconn_regist_recvcb(&_esp8266_udp_client_espconn, _esp8266_udp_client_udp_recv_cb);
-    
+
     //SEND DATA
     int8_t error = espconn_send(&_esp8266_udp_client_espconn, data, data_len);
     
@@ -192,7 +210,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
         if(error == 0)
         {
 	        //UDP SENDING OK
-	        os_printf("ESP8266 : UDP : Data Sent : Length = %d, Local Port = %d\n", data_len, _esp8266_udp_client_local_port);
+	        os_printf("ESP8266 : UDP : Data Sent : Length = %d, Local Port = %d, remote port = %d\n", data_len, _esp8266_udp_client_local_port, _esp8266_udp_client_host_port);
         }
         else
         {
@@ -286,15 +304,51 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 	}
 }
 
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_cb(void* arg)
+{
+	//INTERNAL UDP REPLY TIMER
+	//IF TIMER CALLED => NO UDP REPLY RECEIVED
+	//CALL USER UDP REPLY FUNCTION WITH NULL ARGUMENTS
+
+	if(_esp8266_udp_client_debug)
+	{
+		 os_printf("ESP8266 : UDP CLIENT : REPLY TIMEOUT\n");
+	}
+
+	//CALL USER PROVIDED DATA RECEIVED CB
+	if(*_esp8266_udp_client_udp_user_data_ready_cb != NULL)
+	{
+		(*_esp8266_udp_client_udp_user_data_ready_cb)(NULL, 0);
+	}
+}
+
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_send_cb(void* arg)
+{
+    //INTERNAL UDP DATA SENT CB
+    
+	//CALL USER PROVIDED DATA SENT CB
+	if(*_esp8266_udp_client_udp_user_data_sent_cb != NULL)
+	{
+		(*_esp8266_udp_client_udp_user_data_sent_cb)();
+	}
+
+	//START UDP REPLY TIMER
+	os_timer_setfn(&_esp8266_udp_client_reply_timer, (os_timer_func_t*)_esp8266_udp_client_udp_reply_cb, NULL);
+	os_timer_arm(&_esp8266_udp_client_reply_timer, ESP8266_UDP_CLIENT_UDP_REPLY_TIMEOUT_MS, 0);
+}
+
 void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata, uint16_t length)
 {
     //INTERNAL UDP DATA RECEIVED CB
-    
+
     if(_esp8266_udp_client_debug)
     {
 	    os_printf("ESP8266 : UDP : DATA RECEIVED : LEN = %d", length);
 	}
-	
+
+    //STOP INTERNAL UDP REPLY TIMER
+    os_timer_disarm(&_esp8266_udp_client_reply_timer);
+
 	//CALL USER PROVIDED DATA RECEIVED CB
 	if(*_esp8266_udp_client_udp_user_data_ready_cb != NULL)
 	{
