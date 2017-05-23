@@ -19,7 +19,7 @@ static uint8_t _esp8266_udp_client_debug;
 
 //UDP RELATED
 static struct espconn _esp8266_udp_client_espconn;
-static struct esp_udp _esp8266_udp_client_user_udp;
+static esp_udp _esp8266_udp_client_user_udp;
 
 //IP / HOSTNAME RELATED
 static const char* _esp8266_udp_client_host_name;
@@ -40,7 +40,6 @@ static ESP8266_UDP_CLIENT_STATE _esp8266_udp_client_state;
 
 //CALLBACK FUNCTION VARIABLES
 static void (*_esp8266_udp_client_dns_cb_function)(ip_addr_t*);
-static void (*_esp8266_udp_client_udp_recv_cb)(void*, char*, unsigned short);
 static void (*_esp8266_udp_client_udp_user_data_ready_cb)(char*, uint16_t);
 //END LOCAL LIBRARY VARIABLES/////////////////////////////////
 
@@ -86,7 +85,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDnsServer(char num_dns, ip_addr_t* 
 	return;
 }
 
-void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_ready_cb)(void*, char*, unsigned short))
+void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_ready_cb)(char*, uint16_t))
 {
     //HOOK FOR THE USER TO PROVIDE CALLBACK FUNCTIONS FOR
 	//VARIOUS INTERNAL UDP OPERATION
@@ -135,7 +134,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_ResolveHostName(void (*user_dns_cb_fn)
 	//AND NO DNS REOSLUTION IS DONE
 	
 	//SET USER DNS RESOLVE CB FUNCTION
-	_esp8266_udp_client__dns_cb_function = user_dns_cb_fn;
+	_esp8266_udp_client_dns_cb_function = user_dns_cb_fn;
 
 	//SET DNS RETRY COUNTER TO ZERO
 	_esp8266_udp_client_dns_retry_count = 0;
@@ -148,7 +147,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_ResolveHostName(void (*user_dns_cb_fn)
 		struct espconn temp;
 		_esp8266_udp_client_resolved_host_ip.addr = 0;
 		espconn_gethostbyname(&temp, _esp8266_udp_client_host_name, &_esp8266_udp_client_resolved_host_ip, _esp8266_udp_client_dns_found_cb);
-		os_timer_setfn(&_esp8266_udp_cleint_dns_timer, (os_timer_func_t*)_esp8266_udp_client_dns_timer_cb, &temp);
+		os_timer_setfn(&_esp8266_udp_client_dns_timer, (os_timer_func_t*)_esp8266_udp_client_dns_timer_cb, &temp);
 		os_timer_arm(&_esp8266_udp_client_dns_timer, 1000, 0);
 		return;
 	}
@@ -171,6 +170,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SendData(uint8_t* data, uint16_t data_
     
     _esp8266_udp_client_espconn.type = ESPCONN_UDP;
 	_esp8266_udp_client_espconn.state = ESPCONN_NONE;
+
 	_esp8266_udp_client_user_udp.local_port = espconn_port();
 	_esp8266_udp_client_user_udp.remote_port = _esp8266_udp_client_host_port;
     _esp8266_udp_client_espconn.proto.udp = &_esp8266_udp_client_user_udp;
@@ -286,7 +286,7 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 	}
 }
 
-void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata, unsigned short length)
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata, uint16_t length)
 {
     //INTERNAL UDP DATA RECEIVED CB
     
@@ -298,6 +298,6 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata
 	//CALL USER PROVIDED DATA RECEIVED CB
 	if(*_esp8266_udp_client_udp_user_data_ready_cb != NULL)
 	{
-		(*_esp8266_udp_client_udp_user_data_ready_cb)(arg, pusrdata, length);
+		(*_esp8266_udp_client_udp_user_data_ready_cb)(pusrdata, length);
 	}
 }
