@@ -39,7 +39,8 @@ typedef enum
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDebug(uint8_t debug_on);
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
 													const char* host_ip,
-													uint16_t host_port);
+													uint16_t host_port,
+													uint16_t timeout_ms);
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDnsServer(char num_dns, ip_addr_t* dns);
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_sent_cb)(),
 																		void (*user_data_ready_cb)(char*, uint16_t));
@@ -48,6 +49,7 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetCallbackFunctions(void (*user_data_
 const char* ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetSourceHost(void);
 uint16_t ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetRemotePort(void);
 uint16_t ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetLocalPort(void);
+uint16_t ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetTimeoutMs(void);
 ESP8266_UDP_CLIENT_STATE ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetState(void);
 
 //CONTROL FUNCTIONS
