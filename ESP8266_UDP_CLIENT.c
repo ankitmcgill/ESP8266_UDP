@@ -29,6 +29,7 @@ static uint16_t _esp8266_udp_client_host_port;
 static uint16_t _esp8266_udp_client_local_port;
 
 //TIMER RELATED
+static uint16_t _esp8266_udp_client_timeout_ms;
 static volatile os_timer_t _esp8266_udp_client_dns_timer;
 static volatile os_timer_t _esp8266_udp_client_reply_timer;
 
@@ -54,7 +55,8 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_SetDebug(uint8_t debug_on)
 
 void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
 													const char* host_ip,
-													uint16_t host_port)
+													uint16_t host_port,
+													uint16_t timeout_ms)
 {
     //INITIALIZE UDP CONNECTION PARAMETERS
 	//HOSTNAME (RESOLVED THROUGH DNS IF HOST IP = NULL)
@@ -66,6 +68,9 @@ void ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_Initialize(const char* hostname,
     _esp8266_udp_client_host_port = host_port;
     
     _esp8266_udp_client_dns_retry_count = 0;
+
+    //SET UDP TIMEOUT
+    _esp8266_udp_client_timeout_ms = timeout_ms;
 
 	_esp8266_udp_client_state = ESP8266_UDP_CLIENT_STATE_OK;
 	
@@ -120,6 +125,13 @@ uint16_t ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetLocalPort(void)
     //RETURN THE LOCAL PORT USED BY LIBRARY TO DO UDP COMMUNICATION
     
     return _esp8266_udp_client_local_port;
+}
+
+uint16_t ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetTimeoutMs(void)
+{
+	//RETURN UDP TIMEOUT MS VALUE
+
+	return _esp8266_udp_client_timeout_ms;
 }
 
 ESP8266_UDP_CLIENT_STATE ICACHE_FLASH_ATTR ESP8266_UDP_CLIENT_GetState(void)
@@ -304,7 +316,7 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_dns_found_cb(const char* name, ip_add
 	}
 }
 
-void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_cb(void* arg)
+void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_reply_timer_cb(void* arg)
 {
 	//INTERNAL UDP REPLY TIMER
 	//IF TIMER CALLED => NO UDP REPLY RECEIVED
@@ -333,8 +345,8 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_send_cb(void* arg)
 	}
 
 	//START UDP REPLY TIMER
-	os_timer_setfn(&_esp8266_udp_client_reply_timer, (os_timer_func_t*)_esp8266_udp_client_udp_reply_cb, NULL);
-	os_timer_arm(&_esp8266_udp_client_reply_timer, ESP8266_UDP_CLIENT_UDP_REPLY_TIMEOUT_MS, 0);
+	os_timer_setfn(&_esp8266_udp_client_reply_timer, (os_timer_func_t*)_esp8266_udp_client_udp_reply_timer_cb, NULL);
+	os_timer_arm(&_esp8266_udp_client_reply_timer, _esp8266_udp_client_timeout_ms, 0);
 }
 
 void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata, uint16_t length)
@@ -343,7 +355,7 @@ void ICACHE_FLASH_ATTR _esp8266_udp_client_udp_recv_cb(void* arg, char* pusrdata
 
     if(_esp8266_udp_client_debug)
     {
-	    os_printf("ESP8266 : UDP : DATA RECEIVED : LEN = %d", length);
+	    os_printf("ESP8266 : UDP : DATA RECEIVED : LEN = %d\n", length);
 	}
 
     //STOP INTERNAL UDP REPLY TIMER
